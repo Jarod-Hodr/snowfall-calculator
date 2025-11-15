@@ -1,0 +1,81 @@
+<!doctype html>
+
+
+<label>Region preset
+<select id="regime">
+<option value="maritime">Cascade Maritime (Seattle influence / wet)</option>
+<option value="mixed" selected>Tahoe Mixed (Sierra typical)</option>
+<option value="continental">Continental / High elevation</option>
+</select>
+</label>
+
+
+<label>Optional: Override SLR (e.g., 10 = 10:1). Leave blank for auto.</label>
+<input id="slr_override" type="number" step="0.1" placeholder="Auto">
+
+
+<button id="calc">Calculate</button>
+
+
+<div class="out" id="out">Results will appear here.</div>
+
+
+<p><small>This calculator estimates snowfall using mm of liquid precipitation (3hPA) × SLR. Maritime storms usually produce wetter snow (lower SLR), while high-elevation/colder storms produce fluffier snow (higher SLR).</small></p>
+</div>
+
+
+<script>
+function chooseSLR(tempC, regime){
+let base;
+if(tempC > 0) base = 7;
+else if(tempC > -3) base = 10;
+else if(tempC > -8) base = 13;
+else if(tempC > -12) base = 17;
+else base = 20;
+
+
+let factor = 1.0;
+if(regime === 'maritime') factor = 0.85;
+if(regime === 'mixed') factor = 1.0;
+if(regime === 'continental') factor = 1.15;
+
+
+return Math.max(4, Math.round(base * factor * 10) / 10);
+}
+
+
+function mmToInches(mm){ return mm * 0.0393700787; }
+
+
+document.getElementById('calc').addEventListener('click', ()=>{
+const mm = parseFloat(document.getElementById('mm').value) || 0;
+const temp = parseFloat(document.getElementById('temp').value) || 0;
+const regime = document.getElementById('regime').value;
+const override = parseFloat(document.getElementById('slr_override').value);
+
+
+const slr = (isFinite(override) && override>0) ? override : chooseSLR(temp, regime);
+const liquidInches = mmToInches(mm);
+const snowInches3h = liquidInches * slr;
+const snowPerHour = snowInches3h / 3;
+
+
+document.getElementById('out').innerHTML = `
+<strong>Inputs</strong><br>
+3‑hour precip: ${mm.toFixed(2)} mm (${liquidInches.toFixed(3)} in liquid)<br>
+Temperature: ${temp.toFixed(1)} °C<br>
+Regime: ${regime}<br>
+<strong>Estimated SLR:</strong> ${slr}:1<br><br>
+<strong>Snowfall:</strong><br>
+${snowInches3h.toFixed(2)} in / 3h<br>
+${snowPerHour.toFixed(2)} in/hr
+`;
+});
+
+
+if('serviceWorker' in navigator){
+navigator.serviceWorker.register('service-worker.js');
+}
+</script>
+</body>
+</html>
